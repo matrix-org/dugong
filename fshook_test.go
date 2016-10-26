@@ -173,7 +173,7 @@ func setupLogHook(t *testing.T) (logger *log.Logger, hook *fsHook, wait func(), 
 	warnPath := filepath.Join(dir, "warn.log")
 	errorPath := filepath.Join(dir, "error.log")
 
-	hook = NewFSHook(infoPath, warnPath, errorPath).(*fsHook)
+	hook = NewFSHook(infoPath, warnPath, errorPath, nil).(*fsHook)
 
 	logger = log.New()
 	logger.Hooks.Add(hook)

@@ -8,15 +8,20 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-// NewFSHook makes a logging hook that writes JSON formatted
+// NewFSHook makes a logging hook that writes formatted
 // log entries to info, warn and error log files. Each log file
-// contains the messages with that severity or higher.
-func NewFSHook(infoPath, warnPath, errorPath string) log.Hook {
+// contains the messages with that severity or higher. If a formatter is
+// not specified, they will be logged using a JSON formatter.
+func NewFSHook(infoPath, warnPath, errorPath string, formatter log.Formatter) log.Hook {
+	if formatter == nil {
+		formatter = &log.JSONFormatter{}
+	}
 	hook := &fsHook{
 		entries:   make(chan log.Entry, 1024),
 		infoPath:  infoPath,
 		warnPath:  warnPath,
 		errorPath: errorPath,
+		formatter: formatter,
 	}
 
 	go func() {
@@ -37,7 +42,7 @@ type fsHook struct {
 	infoPath  string
 	warnPath  string
 	errorPath string
-	formatter log.JSONFormatter
+	formatter log.Formatter
 }
 
 func (hook *fsHook) Fire(entry *log.Entry) error {
