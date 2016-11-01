@@ -194,7 +194,7 @@ func gzipFile(fpath string) error {
 	}
 
 	filename := filepath.Base(fpath)
-	target := filepath.Join(filepath.Dir(fpath), fmt.Sprintf("%s.gz", filename))
+	target := filepath.Join(filepath.Dir(fpath), filename+".gz")
 	writer, err := os.Create(target)
 	if err != nil {
 		return err
