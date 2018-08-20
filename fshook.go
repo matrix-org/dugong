@@ -162,7 +162,7 @@ func (hook *fsHook) rotate(suffix string, gzip bool) error {
 }
 
 func logToFile(path string, msg []byte) error {
-	fd, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0600)
+	fd, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
 	if err != nil {
 		return err
 	}
