@@ -72,7 +72,7 @@ func (rs *DailyRotationSchedule) ShouldGZip() bool {
 // contains the messages with that severity or higher. If a formatter is
 // not specified, they will be logged using a JSON formatter. If a
 // RotationScheduler is set, the files will be cycled according to its rules.
-func NewFSHook(path string, formatter log.Formatter, rotSched RotationScheduler) log.Hook {
+func NewFSHook(path string, formatter log.Formatter, rotSched RotationScheduler) *fsHook {
 	if formatter == nil {
 		formatter = &log.JSONFormatter{}
 	}
