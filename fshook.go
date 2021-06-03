@@ -77,10 +77,11 @@ func NewFSHook(path string, formatter log.Formatter, rotSched RotationScheduler)
 		formatter = &log.JSONFormatter{}
 	}
 	hook := &fsHook{
-		entries:   make(chan log.Entry, 1024),
-		path:      path,
-		formatter: formatter,
-		scheduler: rotSched,
+		entries:     make(chan log.Entry, 1024),
+		path:        path,
+		formatter:   formatter,
+		scheduler:   rotSched,
+		logFilePerm: 0660,
 	}
 
 	go func() {
@@ -96,11 +97,16 @@ func NewFSHook(path string, formatter log.Formatter, rotSched RotationScheduler)
 }
 
 type fsHook struct {
-	entries   chan log.Entry
-	queueSize int32
-	path      string
-	formatter log.Formatter
-	scheduler RotationScheduler
+	entries     chan log.Entry
+	queueSize   int32
+	path        string
+	formatter   log.Formatter
+	scheduler   RotationScheduler
+	logFilePerm os.FileMode
+}
+
+func (hook *fsHook) SetFilePerm(perm os.FileMode) {
+	hook.logFilePerm = perm
 }
 
 func (hook *fsHook) Fire(entry *log.Entry) error {
@@ -123,7 +129,7 @@ func (hook *fsHook) writeEntry(entry *log.Entry) error {
 		}
 	}
 
-	if err := logToFile(hook.path, msg); err != nil {
+	if err := logToFile(hook.path, msg, hook.logFilePerm); err != nil {
 		return err
 	}
 
@@ -161,8 +167,8 @@ func (hook *fsHook) rotate(suffix string, gzip bool) error {
 	return nil
 }
 
-func logToFile(path string, msg []byte) error {
-	fd, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0660)
+func logToFile(path string, msg []byte, perm os.FileMode) error {
+	fd, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, perm)
 	if err != nil {
 		return err
 	}
