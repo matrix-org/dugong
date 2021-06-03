@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -205,6 +206,60 @@ func TestDailyScheduleMultipleRotations(t *testing.T) {
 
 	// fshook.log should have 6-7 (current day is 11/01)
 	checkFileHasSequentialCounts(t, hook.path, 6, 7)
+}
+
+func TestFilePermDefault(t *testing.T) {
+	checkFilePerm(t, nil)
+}
+
+func TestFilePermAllRead(t *testing.T) {
+	var mode os.FileMode = 0644
+	checkFilePerm(t, &mode)
+}
+
+func TestFilePermAllReadWrite(t *testing.T) {
+	var mode os.FileMode = 0666
+	checkFilePerm(t, &mode)
+}
+
+func checkFilePerm(t *testing.T, mode *os.FileMode) {
+	// Set the umask to 0, otherwise the effective permissions of the file
+	// we create will be the ones we asked for with the permssions in the
+	// umask removed, which is not so useful for testing
+	oldumask := syscall.Umask(0)
+	defer syscall.Umask(oldumask)
+
+	logger, hook, wait, teardown := setupLogHook(t)
+	defer teardown()
+
+	if mode != nil {
+		hook.SetFilePerm(*mode)
+	}
+
+	logger.Info("log log log")
+
+	wait()
+
+	f, err := os.Open(hook.path)
+	if err != nil {
+		t.Fatalf("Failed to open log file: %v", err)
+	}
+	info, err := f.Stat()
+	if err != nil {
+		t.Fatalf("Failed to stat log file: %v", err)
+	}
+	f.Close()
+
+	var expectedMode os.FileMode
+	if mode != nil {
+		expectedMode = *mode
+	} else {
+		expectedMode = 0660
+	}
+
+	if info.Mode() != expectedMode {
+		t.Fatalf("Wanted file mode %v but got %v", expectedMode, info.Mode())
+	}
 }
 
 // checkFileHasSequentialCounts based on a JSON "counter" key being a monotonically
