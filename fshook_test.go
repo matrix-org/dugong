@@ -140,6 +140,42 @@ func TestFSHookConcurrent(t *testing.T) {
 	}
 }
 
+func TestFSHookGZ(t *testing.T) {
+	loc, err := time.LoadLocation("UTC")
+	if err != nil {
+		t.Fatalf("Failed to load location UTC: %s", err)
+	}
+
+	logger, hook, wait, teardown := setupLogHook(t)
+	defer teardown()
+	hook.scheduler = &DailyRotationSchedule{
+		GZip: true,
+	}
+
+	// Time ticks from 23:50 to 00:10 in 1 minute increments. Log each tick as 'counter'.
+	minutesGoneBy := 0
+	currentTime = func() time.Time {
+		minutesGoneBy++
+		return time.Date(2016, 10, 26, 23, 50+minutesGoneBy, 00, 0, loc)
+	}
+	for i := 0; i < 20; i++ {
+		t := time.Date(2016, 10, 26, 23, 50+i, 00, 0, loc)
+		logger.WithField("counter", i).Info("BASE " + t.Format(time.ANSIC))
+	}
+
+	wait()
+
+	f, err := os.Open(hook.path + ".2016-10-26.gz")
+	if err != nil {
+		t.Fatalf("Failed to open log file: %v", err)
+	}
+	_, err = f.Stat()
+	if err != nil {
+		t.Fatalf("Failed to stat log file: %v", err)
+	}
+	f.Close()
+}
+
 func TestDailySchedule(t *testing.T) {
 	loc, err := time.LoadLocation("UTC")
 	if err != nil {

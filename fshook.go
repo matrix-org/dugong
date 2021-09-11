@@ -211,5 +211,5 @@ func gzipFile(fpath string, mode os.FileMode) error {
 		return err
 	}
 
-	return os.Remove(filename)
+	return os.Remove(fpath)
 }
