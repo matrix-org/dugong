@@ -141,6 +141,9 @@ func TestFSHookConcurrent(t *testing.T) {
 }
 
 func TestFSHookGZ(t *testing.T) {
+	oldumask := syscall.Umask(0)
+	defer syscall.Umask(oldumask)
+
 	loc, err := time.LoadLocation("UTC")
 	if err != nil {
 		t.Fatalf("Failed to load location UTC: %s", err)
@@ -165,14 +168,24 @@ func TestFSHookGZ(t *testing.T) {
 
 	wait()
 
-	f, err := os.Open(hook.path + ".2016-10-26.gz")
+	f, err := os.Open(hook.path + ".2016-10-26")
+	if err == nil {
+		t.Fatalf("Failed to remove original file after gziping\n")
+	}
+
+	f, err = os.Open(hook.path + ".2016-10-26.gz")
 	if err != nil {
 		t.Fatalf("Failed to open log file: %v", err)
 	}
-	_, err = f.Stat()
+	s, err := f.Stat()
 	if err != nil {
 		t.Fatalf("Failed to stat log file: %v", err)
 	}
+
+	if s.Mode() != hook.logFilePerm {
+		t.Fatalf("gzipped file permissions incorrect, wanted %v got %v", hook.logFilePerm, s.Mode())
+	}
+
 	f.Close()
 }
 
