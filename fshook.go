@@ -170,7 +170,7 @@ func (hook *fsHook) rotate(suffix string, gzip bool) error {
 		fmt.Fprintf(os.Stderr, "Error rotating file %s: %v\n", hook.path, err)
 	} else if gzip {
 		// Don't try to gzip if we failed to rotate
-		if err := gzipFile(logFilePath); err != nil {
+		if err := gzipFile(logFilePath, hook.logFilePerm); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to gzip file %s: %v\n", logFilePath, err)
 		}
 	}
@@ -187,7 +187,7 @@ func logToFile(path string, msg []byte, perm os.FileMode) error {
 	return err
 }
 
-func gzipFile(fpath string) error {
+func gzipFile(fpath string, mode os.FileMode) error {
 	reader, err := os.Open(fpath)
 	if err != nil {
 		return err
@@ -195,7 +195,7 @@ func gzipFile(fpath string) error {
 
 	filename := filepath.Base(fpath)
 	target := filepath.Join(filepath.Dir(fpath), filename+".gz")
-	writer, err := os.Create(target)
+	writer, err := os.OpenFile(target, os.O_WRONLY|os.O_APPEND|os.O_CREATE, mode)
 	if err != nil {
 		return err
 	}
@@ -206,5 +206,10 @@ func gzipFile(fpath string) error {
 	defer archiver.Close()
 
 	_, err = io.Copy(archiver, reader)
-	return err
+
+	if err != nil {
+		return err
+	}
+
+	return os.Remove(fpath)
 }
